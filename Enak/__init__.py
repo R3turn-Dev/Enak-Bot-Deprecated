@@ -46,7 +46,7 @@ class Bot(Client):
         msg_head = msg.content.split(" ")[0]
 
         if msg_head in _SERVER_COMMANDS.keys():
-            f = _SERVER_COMMANDS[msg_head]['feedback']
+            f = _SERVER_COMMANDS[msg_head]['feedback'].replace("\\n", "\n").replace("\\t", "\t")
             t = _SERVER_COMMANDS[msg_head]['timeout']
             _out = await self.send_message(msg.channel, f)
 
@@ -62,7 +62,7 @@ class Bot(Client):
             fb_channel = self.get_channel(fb_channel_id)
 
             msg_temp = self.getTemplateMessage(server_id, "welcome")
-            msg_temp = msg_temp.format(id=member.id, name=member.server.name)
+            msg_temp = msg_temp.format(id=member.id, name=member.server.name).replace("\\n", "\n").replace("\\t", "\t")
 
             await self.send_message(fb_channel, msg_temp)
         except Exception as ex: print(ex)
@@ -89,7 +89,7 @@ class Bot(Client):
             fb_channel = self.get_channel(fb_channel_id)
 
             msg_temp = self.getTemplateMessage(server_id, "left")
-            msg_temp = msg_temp.format(gb_nick=member.name, nick=member.nick, name=member.server.name)
+            msg_temp = msg_temp.format(gb_nick=member.name, nick=member.nick, name=member.server.name).replace("\\n", "\n").replace("\\t", "\t")
 
             await self.send_message(fb_channel, msg_temp)
         except Exception as ex: print(ex)

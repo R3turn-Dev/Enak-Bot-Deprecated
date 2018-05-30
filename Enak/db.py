@@ -95,3 +95,13 @@ class PostgreSQL:
 
             if len(data): return data[0][0]
             else: return "설정된 메세지가 없습니다. 한 번 설정해보세요!"
+
+    def getCommands(self, server):
+        cur = self.getCursor()
+
+        cur.execute("SELECT name, feedback, timeout FROM commands WHERE server='{}' or server = '0';".format(
+            server
+        ))
+
+        data = cur.fetchall()
+        return dict([(k, {'feedback': f, 'timeout': t}) for k, f, t in data])

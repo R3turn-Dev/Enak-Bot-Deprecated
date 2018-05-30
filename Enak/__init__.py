@@ -3,6 +3,7 @@ from .db import PostgreSQL
 from .settings import SettingManager
 from json import dumps
 from time import strftime, time
+from asyncio import sleep
 
 conf = SettingManager().get().PostgreSQL
 DB = PostgreSQL(**conf)
@@ -12,11 +13,15 @@ BotConf = dict(DB.get_configuration())
 
 class Bot(Client):
     def __init__(self):
+        # Initialize Parent class
         super().__init__()
 
+        # Get token from setting
         self.token = SettingManager().get().Token
         self.logger = DB.writeLog
 
+        # Handler for DB Functions
+        self.getCommands = DB.getCommands
         self.getFeedbackChannel = DB.getFeedbackChannel
         self.getTemplateMessage = DB.getTemplateMessage
 
@@ -26,8 +31,28 @@ class Bot(Client):
         await self.change_presence(game=Game(name=BotConf['status_message']))
 
     async def on_message(self, msg):
+        # Logging all the messages
         await self.logger(msg)
+
         print(msg.id, msg.server, msg.channel, msg.author, msg.content, msg.attachments)
+
+        # ## No Direct Messages
+        if msg.server is None:
+            await self.send_message(msg.channel, "이 봇은 Direct Message 에서 사용하실 수 없습니다.\nThis bot cannot be used in DM.")
+            return
+
+        # ## Custom Command detection
+        _SERVER_COMMANDS = self.getCommands(msg.server.id)
+        msg_head = msg.content.split(" ")[0]
+
+        if msg_head in _SERVER_COMMANDS.keys():
+            f = _SERVER_COMMANDS[msg_head]['feedback']
+            t = _SERVER_COMMANDS[msg_head]['timeout']
+            _out = await self.send_message(msg.channel, f)
+
+            if t > 0:
+                await sleep(t)
+                await self.delete_message(_out)
 
     async def on_member_join(self, member):
         server_id = member.server.id

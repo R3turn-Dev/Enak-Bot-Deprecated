@@ -43,6 +43,10 @@ class Bot(Client):
             await self.send_message(msg.channel, "이 봇은 Direct Message 에서 사용하실 수 없습니다.\nThis bot cannot be used in DM.")
             return
 
+        # ## No React at bot message
+        if msg.author.bot:
+            return
+
         # ## Custom Command detection
         _SERVER_COMMANDS = self.getCommands(msg.server.id)
         msg_head = msg.content.split(" ")[0]

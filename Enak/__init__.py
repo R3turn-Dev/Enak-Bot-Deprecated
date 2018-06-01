@@ -24,6 +24,8 @@ class Bot(Client):
         self.getCommands = DB.getCommands
         self.getFeedbackChannel = DB.getFeedbackChannel
         self.getTemplateMessage = DB.getTemplateMessage
+        self.getAdmins = DB.getAdminInfo
+        self.getFooter = DB.getFooter
 
     async def on_ready(self, *args, **kwargs):
         print(" < Bot Ready >")
@@ -53,6 +55,36 @@ class Bot(Client):
             if t > 0:
                 await sleep(t)
                 await self.delete_message(_out)
+
+        # ## Bot Feature Command Detection
+        if msg_head == "2권한":
+            specific_admin = self.getAdmins(server=msg.server.id, user_id=msg.author.id)
+            print(specific_admin)
+
+            result = ""
+            if specific_admin:
+                for role in [x[0] for x in specific_admin]:
+                    if role == "global":
+                        result += "**Admin (global)**\n" \
+                                  "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
+                                  "\t봇의 주인이거나 주인이 권한을 인가해준 관리자입니다.\n" \
+                                  "\t봇의 기능에 대해 __**모든 권한**__이 있습니다.*\n\n"
+                    elif role == "server":
+                        result += "**Admin (server)**\n" \
+                                  "\t*이 서버에 한해서 봇의 관리자 권한을 얻습니다.\n" \
+                                  "\t봇의 기능에 대해 이 서버에 대한 내용에 권한이 있습니다.*\n\n"
+                    else:
+                        result += "**Admin (etc)**\n" \
+                                  "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
+            else:
+                result += "**User**\n" \
+                          "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
+
+            embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(msg.author.id))
+            embed.add_field(name="Permissions", value=result, inline=False)
+            embed.set_footer(text=self.getFooter())
+
+            await self.send_message(msg.channel, embed=embed)
 
     async def on_member_join(self, member):
         server_id = member.server.id
@@ -104,7 +136,7 @@ class Bot(Client):
             embed.add_field(name="Global Name", value=member.name, inline=False)
             embed.add_field(name="Server Nick", value=member.nick if member.nick is not None else member.name, inline=False)
             embed.add_field(name="Discord ID", value=member.id, inline=False)
-            embed.set_footer(text="으낙봇 | 이은학#9299 | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
+            embed.set_footer(text=self.getFooter() + " | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
 
             await self.send_message(at_channel, embed=embed)
         except Exception as ex: print(ex)
@@ -123,7 +155,7 @@ class Bot(Client):
             embed.set_author(name=before.author.name, icon_url=before.author.avatar_url)
             embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\n""".format(before.content, dumps(before.attachments)), inline=False)
             embed.add_field(name="After", value="""Message: {}\n\nAttachments: {}\n""".format(after.content, dumps(after.attachments)), inline=False)
-            embed.set_footer(text="으낙봇 | 이은학#9299 | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
+            embed.set_footer(text=self.getFooter() + " | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
 
             await self.send_message(at_channel, embed=embed)
         except Exception as ex: print(ex)
@@ -141,7 +173,7 @@ class Bot(Client):
                           description="author <@{}> | at <#{}>\n\n".format(msg.author.id, msg.channel.id))
             embed.set_author(name=msg.author.name, icon_url=msg.author.avatar_url)
             embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\n""".format(msg.content, dumps(msg.attachments)), inline=False)
-            embed.set_footer(text="으낙봇 | 이은학#9299 | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
+            embed.set_footer(text=self.getFooter() + " | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
 
             await self.send_message(at_channel, embed=embed)
         except Exception as ex: print(ex)

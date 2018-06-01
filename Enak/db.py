@@ -105,3 +105,22 @@ class PostgreSQL:
 
         data = cur.fetchall()
         return dict([(k, {'feedback': f, 'timeout': t}) for k, f, t in data])
+
+    def getAdminInfo(self, server="", user_id="", overlap=False):
+        cur = self.getCursor()
+
+        cur.execute("SELECT {} FROM administrators WHERE (server='{}' or server='0') {};".format(
+            "type" if user_id else "user_id, type", server, """and user_id='{}'""".format(user_id) if user_id else ""
+        ))
+
+        data = cur.fetchall()
+        print(data)
+        return data
+
+    def getFooter(self):
+        cur = self.getCursor()
+
+        cur.execute("SELECT content FROM templates WHERE type='footer' LIMIT 1;")
+
+        data = cur.fetchall()
+        return data[0][0] if data else ""

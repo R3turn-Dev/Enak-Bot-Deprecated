@@ -69,7 +69,7 @@ class PostgreSQL:
 
         cur = self.getCursor()
 
-        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments, embeds) VALUES ('{}', '{}', '{}', '{}', E'{}', '{}', '{}');".format(
+        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments, embeds) VALUES ('{}', '{}', '{}', '{}', E'{}', E'{}', E'{}');".format(
             msg.id, server_id, channel_id, author_id, content, attachments, embeds
         ))
 

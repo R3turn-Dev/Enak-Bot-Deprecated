@@ -65,8 +65,8 @@ class PostgreSQL:
         channel_id = msg.channel.id
         author_id = msg.author.id
         content = self.escaper(msg.content)
-        attachments = dumps(msg.attachments)
-        embeds = dumps(msg.embeds)
+        attachments = self.escaper(dumps(msg.attachments))
+        embeds = self.escaper(dumps(msg.embeds))
 
         cur = self.getCursor()
 

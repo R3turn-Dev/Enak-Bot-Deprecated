@@ -13,6 +13,8 @@ class PostgreSQL:
         self.connDict = {}
         self.curDict = {}
 
+        self.escaper = lambda x: x
+
         if initial_connect:
             self.getConn()
             self.getCursor()
@@ -61,13 +63,14 @@ class PostgreSQL:
         server_id = "0" if msg.server is None else msg.server.id
         channel_id = msg.channel.id
         author_id = msg.author.id
+        content = escape(msg.content)
         attachments = dumps(msg.attachments)
         embeds = dumps(msg.embeds)
 
         cur = self.getCursor()
 
-        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments, embeds) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}');".format(
-            msg.id, server_id, channel_id, author_id, msg.content, attachments, embeds
+        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments, embeds) VALUES ('{}', '{}', '{}', '{}', E'{}', '{}', '{}');".format(
+            msg.id, server_id, channel_id, author_id, content, attachments, embeds
         ))
 
     def getFeedbackChannel(self, server, type):

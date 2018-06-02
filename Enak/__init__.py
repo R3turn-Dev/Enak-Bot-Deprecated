@@ -20,6 +20,8 @@ class Bot(Client):
         self.token = SettingManager().get().Token
         self.logger = DB.writeLog
 
+        self.react_emoji = "👌"
+
         # Handler for DB Functions
         self.getCommands = DB.getCommands
         self.getFeedbackChannel = DB.getFeedbackChannel
@@ -55,7 +57,7 @@ class Bot(Client):
             f = _SERVER_COMMANDS[msg_head]['feedback'].replace("\\n", "\n").replace("\\t", "\t")
             t = _SERVER_COMMANDS[msg_head]['timeout']
             _out = await self.send_message(msg.channel, f)
-            await self.add_reaction(msg, "👌")
+            await self.add_reaction(msg, self.react_emoji)
 
             if t > 0:
                 await sleep(t)
@@ -90,6 +92,16 @@ class Bot(Client):
             embed.set_footer(text=self.getFooter())
 
             await self.send_message(msg.channel, embed=embed)
+
+        elif msg_head == "2명령어" or msg_head == "2커맨드" or msg_head == "2commands":
+            _out = await self.send_message(
+                msg.channel,
+                "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(msg.author.id)+"\n\t".join(_SERVER_COMMANDS.keys())
+            )
+            await self.add_reaction(msg, self.react_emoji)
+
+            await sleep(10)
+            await self.delete_message(_out)
 
     async def on_member_join(self, member):
         server_id = member.server.id

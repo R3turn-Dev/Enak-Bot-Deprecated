@@ -1,6 +1,7 @@
 from psycopg2 import connect
 from threading import get_ident
 from json import dumps
+from re import escape
 
 
 class PostgreSQL:
@@ -13,7 +14,7 @@ class PostgreSQL:
         self.connDict = {}
         self.curDict = {}
 
-        self.escaper = lambda x: x
+        self.escaper = escape
 
         if initial_connect:
             self.getConn()

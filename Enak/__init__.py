@@ -55,6 +55,7 @@ class Bot(Client):
             f = _SERVER_COMMANDS[msg_head]['feedback'].replace("\\n", "\n").replace("\\t", "\t")
             t = _SERVER_COMMANDS[msg_head]['timeout']
             _out = await self.send_message(msg.channel, f)
+            await self.add_reaction(msg, "👌")
 
             if t > 0:
                 await sleep(t)

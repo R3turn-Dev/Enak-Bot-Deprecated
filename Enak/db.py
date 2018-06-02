@@ -63,7 +63,7 @@ class PostgreSQL:
         server_id = "0" if msg.server is None else msg.server.id
         channel_id = msg.channel.id
         author_id = msg.author.id
-        content = escape(msg.content)
+        content = self.escaper(msg.content)
         attachments = dumps(msg.attachments)
         embeds = dumps(msg.embeds)
 

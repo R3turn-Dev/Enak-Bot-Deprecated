@@ -36,7 +36,7 @@ class Bot(Client):
         # Logging all the messages
         await self.logger(msg)
 
-        print(msg.id, msg.server, msg.channel, msg.author, msg.content, msg.attachments)
+        print(msg.id, msg.server, msg.channel, msg.author, msg.content, msg.attachments, msg.embeds)
 
         # ## No Direct Messages
         if msg.server is None:
@@ -158,8 +158,8 @@ class Bot(Client):
             embed = Embed(title="Message Editted", color=0xf57705,
                           description="do`in <@{}> | at <#{}>\n\n".format(before.author.id, before.channel.id))
             embed.set_author(name=before.author.name, icon_url=before.author.avatar_url)
-            embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\n""".format(before.content, dumps(before.attachments)), inline=False)
-            embed.add_field(name="After", value="""Message: {}\n\nAttachments: {}\n""".format(after.content, dumps(after.attachments)), inline=False)
+            embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\nEmbeds: {}\n""".format(before.content, dumps(before.attachments), dumps(before.embeds)), inline=False)
+            embed.add_field(name="After", value="""Message: {}\n\nAttachments: {}\nEmbeds: {}\n""".format(after.content, dumps(after.attachments), dumps(after.embeds)), inline=False)
             embed.set_footer(text=self.getFooter() + " | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
 
             await self.send_message(at_channel, embed=embed)
@@ -177,7 +177,7 @@ class Bot(Client):
             embed = Embed(title="Message Deleted", color=0xf57705,
                           description="author <@{}> | at <#{}>\n\n".format(msg.author.id, msg.channel.id))
             embed.set_author(name=msg.author.name, icon_url=msg.author.avatar_url)
-            embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\n""".format(msg.content, dumps(msg.attachments)), inline=False)
+            embed.add_field(name="Before", value="""Message: {}\n\nAttachments: {}\nEmbeds: {}\n""".format(msg.content, dumps(msg.attachments), dumps(msg.embeds)), inline=False)
             embed.set_footer(text=self.getFooter() + " | Timestamp: {}({})".format(strftime("%Y/%m/%d %H:%M:%S"), time()))
 
             await self.send_message(at_channel, embed=embed)

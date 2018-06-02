@@ -62,11 +62,12 @@ class PostgreSQL:
         channel_id = msg.channel.id
         author_id = msg.author.id
         attachments = dumps(msg.attachments)
+        embeds = dumps(msg.embeds)
 
         cur = self.getCursor()
 
-        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments) VALUES ('{}', '{}', '{}', '{}', '{}', '{}');".format(
-            msg.id, server_id, channel_id, author_id, msg.content, attachments
+        cur.execute("INSERT INTO messages (msg_id, server, channel, author, content, attachments, embeds) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}');".format(
+            msg.id, server_id, channel_id, author_id, msg.content, attachments, embeds
         ))
 
     def getFeedbackChannel(self, server, type):

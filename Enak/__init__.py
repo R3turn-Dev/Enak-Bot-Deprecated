@@ -40,13 +40,13 @@ class Bot(Client):
 
         print(msg.id, msg.server, msg.channel, msg.author, msg.content, msg.attachments, msg.embeds)
 
+        # ## No React at bot message
+        if msg.author.bot:
+            return
+
         # ## No Direct Messages
         if msg.server is None:
             await self.send_message(msg.channel, "이 봇은 Direct Message 에서 사용하실 수 없습니다.\nThis bot cannot be used in DM.")
-            return
-
-        # ## No React at bot message
-        if msg.author.bot:
             return
 
         # ## Custom Command detection

@@ -24,6 +24,7 @@ class Bot(Client):
 
         # Handler for DB Functions
         self.getCommands = DB.getCommands
+        self.getChannelInfo = DB.getChannelInfo
         self.getFeedbackChannel = DB.getFeedbackChannel
         self.getTemplateMessage = DB.getTemplateMessage
         self.getAdmins = DB.getAdminInfo
@@ -35,6 +36,15 @@ class Bot(Client):
         await self.change_presence(game=Game(name=BotConf['status_message']))
 
     async def on_message(self, msg):
+        # Check channel info
+        _CHANNEL_INFO = self.getChannelInfo(msg.channel.id)
+        _CHANNEL_TYPE = [x[0] for x in _CHANNEL_INFO]
+        _CHANNEL_NO_LOOKING = [x[1] for x in _CHANNEL_INFO]
+
+        # Drop when channel was set not to look
+        if True in _CHANNEL_NO_LOOKING:
+            return None
+
         # Logging all the messages
         await self.logger(msg)
 
@@ -49,59 +59,62 @@ class Bot(Client):
             await self.send_message(msg.channel, "이 봇은 Direct Message 에서 사용하실 수 없습니다.\nThis bot cannot be used in DM.")
             return
 
-        # ## Custom Command detection
-        _SERVER_COMMANDS = self.getCommands(msg.server.id)
-        msg_head = msg.content.split(" ")[0]
+        # Command Process
+        if "allow_command" in _CHANNEL_TYPE:
+            # ## Local Command detection
+            _SERVER_COMMANDS = self.getCommands(msg.server.id)
+            msg_head = msg.content.split(" ")[0]
 
-        if msg_head in _SERVER_COMMANDS.keys():
-            f = _SERVER_COMMANDS[msg_head]['feedback'].replace("\\n", "\n").replace("\\t", "\t")
-            t = _SERVER_COMMANDS[msg_head]['timeout']
-            _out = await self.send_message(msg.channel, f)
-            await self.add_reaction(msg, self.react_emoji)
+            # ## Local Command
+            if msg_head in _SERVER_COMMANDS.keys():
+                f = _SERVER_COMMANDS[msg_head]['feedback'].replace("\\n", "\n").replace("\\t", "\t")
+                t = _SERVER_COMMANDS[msg_head]['timeout']
+                _out = await self.send_message(msg.channel, f)
+                await self.add_reaction(msg, self.react_emoji)
 
-            if t > 0:
-                await sleep(t)
+                if t > 0:
+                    await sleep(t)
+                    await self.delete_message(_out)
+
+            # ## Bot Feature Command Detection
+            if msg_head == "2권한":
+                specific_admin = self.getAdmins(server=msg.server.id, user_id=msg.author.id)
+                print(specific_admin)
+
+                result = ""
+                if specific_admin:
+                    for role in [x[0] for x in specific_admin]:
+                        if role == "global":
+                            result += "**Admin (global)**\n" \
+                                      "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
+                                      "\t봇의 주인이거나 주인이 권한을 인가해준 관리자입니다.\n" \
+                                      "\t봇의 기능에 대해 __**모든 권한**__이 있습니다.*\n\n"
+                        elif role == "server":
+                            result += "**Admin (server)**\n" \
+                                      "\t*이 서버에 한해서 봇의 관리자 권한을 얻습니다.\n" \
+                                      "\t봇의 기능에 대해 이 서버에 대한 내용에 권한이 있습니다.*\n\n"
+                        else:
+                            result += "**Admin (etc)**\n" \
+                                      "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
+                else:
+                    result += "**User**\n" \
+                              "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
+
+                embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(msg.author.id))
+                embed.add_field(name="Permissions", value=result, inline=False)
+                embed.set_footer(text=self.getFooter())
+
+                await self.send_message(msg.channel, embed=embed)
+
+            elif msg_head == "2명령어" or msg_head == "2커맨드" or msg_head == "2commands":
+                _out = await self.send_message(
+                    msg.channel,
+                    "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(msg.author.id)+"\n\t".join(_SERVER_COMMANDS.keys())
+                )
+                await self.add_reaction(msg, self.react_emoji)
+
+                await sleep(10)
                 await self.delete_message(_out)
-
-        # ## Bot Feature Command Detection
-        if msg_head == "2권한":
-            specific_admin = self.getAdmins(server=msg.server.id, user_id=msg.author.id)
-            print(specific_admin)
-
-            result = ""
-            if specific_admin:
-                for role in [x[0] for x in specific_admin]:
-                    if role == "global":
-                        result += "**Admin (global)**\n" \
-                                  "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
-                                  "\t봇의 주인이거나 주인이 권한을 인가해준 관리자입니다.\n" \
-                                  "\t봇의 기능에 대해 __**모든 권한**__이 있습니다.*\n\n"
-                    elif role == "server":
-                        result += "**Admin (server)**\n" \
-                                  "\t*이 서버에 한해서 봇의 관리자 권한을 얻습니다.\n" \
-                                  "\t봇의 기능에 대해 이 서버에 대한 내용에 권한이 있습니다.*\n\n"
-                    else:
-                        result += "**Admin (etc)**\n" \
-                                  "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
-            else:
-                result += "**User**\n" \
-                          "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
-
-            embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(msg.author.id))
-            embed.add_field(name="Permissions", value=result, inline=False)
-            embed.set_footer(text=self.getFooter())
-
-            await self.send_message(msg.channel, embed=embed)
-
-        elif msg_head == "2명령어" or msg_head == "2커맨드" or msg_head == "2commands":
-            _out = await self.send_message(
-                msg.channel,
-                "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(msg.author.id)+"\n\t".join(_SERVER_COMMANDS.keys())
-            )
-            await self.add_reaction(msg, self.react_emoji)
-
-            await sleep(10)
-            await self.delete_message(_out)
 
     async def on_member_join(self, member):
         server_id = member.server.id
@@ -159,6 +172,7 @@ class Bot(Client):
         except Exception as ex: print(ex)
 
     async def on_message_edit(self, before, after):
+        if before.author.bot: return None
         try:
             server_id = before.server.id
             at_channel_id = self.getFeedbackChannel(server_id, "audit")
@@ -178,6 +192,7 @@ class Bot(Client):
         except Exception as ex: print(ex)
 
     async def on_message_delete(self, msg):
+        if msg.author.bot: return None
         try:
             server_id = msg.server.id
             at_channel_id = self.getFeedbackChannel(server_id, "audit")

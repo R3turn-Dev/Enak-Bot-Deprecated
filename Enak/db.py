@@ -74,6 +74,14 @@ class PostgreSQL:
             msg.id, server_id, channel_id, author_id, content, attachments, embeds
         ))
 
+    def getChannelInfo(self, channel):
+        cur = self.getCursor()
+
+        cur.execute("SELECT type, no_looking FROM channels WHERE channel='{}' and enabled=TRUE ;".format(channel))
+
+        data = cur.fetchall()
+        return data
+
     def getFeedbackChannel(self, server, type):
         cur = self.getCursor()
 

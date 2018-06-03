@@ -15,7 +15,7 @@ BotConf = dict(DB.get_configuration())
 class Bot(commands.Bot):
     def __init__(self):
         # Initialize Parent class
-        super().__init__(command_prefix="?")
+        super().__init__(command_prefix="2")
 
         # Get token from setting
         self.token = SettingManager().get().Token
@@ -31,11 +31,8 @@ class Bot(commands.Bot):
         self.getAdmins = DB.getAdminInfo
         self.getFooter = DB.getFooter
 
-        self.add_command(self.test)
-
-    @commands.command(name='test')
-    async def test(self, ctx):
-        await ctx.send("HI")
+        self.add_command(self.get_commands)
+        self.add_command(self.get_permission)
 
     def getRank(self, server, user_id):
         _info = self.getAdmins(server=server, user_id=user_id, rank=True)
@@ -94,50 +91,55 @@ class Bot(commands.Bot):
                     await sleep(t)
                     await self.delete_message(_out)
 
-            # ## Bot Feature Command Detection
-            if msg_head == "2권한":
-                print("GO")
-                specific_admin = self.getAdmins(server=msg.server.id, user_id=msg.author.id)
+                return  # End process to avoid duplicated reaction
 
-                result = ""
-                if specific_admin:
-                    for role in [x[0] for x in specific_admin]:
-                        if role == "global":
-                            result += "**Admin (global)**\n" \
-                                      "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
-                                      "\t봇의 주인이거나 주인이 권한을 인가해준 관리자입니다.\n" \
-                                      "\t봇의 기능에 대해 __**모든 권한**__이 있습니다.*\n\n"
-                        elif role == "server":
-                            result += "**Admin (server)**\n" \
-                                      "\t*이 서버에 한해서 봇의 관리자 권한을 얻습니다.\n" \
-                                      "\t봇의 기능에 대해 이 서버에 대한 내용에 권한이 있습니다.*\n\n"
-                        else:
-                            result += "**Admin (etc)**\n" \
-                                      "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
+            # ## Feature Command
+            await self.process_commands(msg)
+
+    # 2권한
+    @commands.command(name="권한", pass_context=True)
+    async def get_permission(self, ctx):
+        _RANK = self.getRank(ctx.message.server.id, ctx.message.author.id)
+        specific_admin = self.getAdmins(server=ctx.message.server.id, user_id=ctx.message.author.id)
+
+        result = ""
+        if specific_admin:
+            for role in [x[0] for x in specific_admin]:
+                if role == "global":
+                    result += "**Admin (global)**\n" \
+                              "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
+                              "\t봇의 주인이거나 주인이 권한을 인가해준 관리자입니다.\n" \
+                              "\t봇의 기능에 대해 __**모든 권한**__이 있습니다.*\n\n"
+                elif role == "server":
+                    result += "**Admin (server)**\n" \
+                              "\t*이 서버에 한해서 봇의 관리자 권한을 얻습니다.\n" \
+                              "\t봇의 기능에 대해 이 서버에 대한 내용에 권한이 있습니다.*\n\n"
                 else:
-                    if _RANK <= 1e5:
-                        result += "**User**\n" \
-                                  "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
-                    else:
-                        result += "**User**\n"
+                    result += "**Admin (etc)**\n" \
+                              "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
+        else:
+            if _RANK <= 1e5:
+                result += "**User**\n" \
+                          "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
+            else:
+                result += "**User**\n"
 
-                embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(msg.author.id))
-                embed.add_field(name="Permissions", value=result, inline=False)
-                embed.set_footer(text=self.getFooter())
+        embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(ctx.message.author.id))
+        embed.add_field(name="Permissions", value=result, inline=False)
+        embed.set_footer(text=self.getFooter())
 
-                await self.send_message(msg.channel, embed=embed)
+        await self.send_message(ctx.message.channel, embed=embed)
 
-            elif msg_head == "2명령어" or msg_head == "2커맨드" or msg_head == "2commands":
-                if _RANK > 1e5: return
+    # 2커맨드
+    @commands.command(name='커맨드', pass_context=True)
+    async def get_commands(self, ctx):
+        _SERVER_COMMANDS = self.getCommands(ctx.message.server.id)
 
-                _out = await self.send_message(
-                    msg.channel,
-                    "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(msg.author.id)+"\n\t".join(_SERVER_COMMANDS.keys())
-                )
-                await self.add_reaction(msg, self.react_emoji)
+        _out = await self.send_message(ctx.message.channel, "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(ctx.message.author.id) + "\n\t".join(_SERVER_COMMANDS.keys()))
+        await self.add_reaction(ctx.message, self.react_emoji)
 
-                await sleep(10)
-                await self.delete_message(_out)
+        await sleep(10)
+        await self.delete_message(_out)
 
     async def on_member_join(self, member):
         server_id = member.server.id

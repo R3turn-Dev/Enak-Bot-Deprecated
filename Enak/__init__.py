@@ -176,7 +176,7 @@ class Bot(commands.Bot):
             fb_channel = self.get_channel(fb_channel_id)
 
             msg_temp = self.getTemplateMessage(server_id, "left")
-            msg_temp = msg_temp.format(gb_nick=member.name, nick=member.nick, name=member.server.name).replace("\\n", "\n").replace("\\t", "\t")
+            msg_temp = msg_temp.format(gb_nick=member.name, nick=member.nick if member.nick is not None else member.name, name=member.server.name).replace("\\n", "\n").replace("\\t", "\t")
 
             await self.send_message(fb_channel, msg_temp)
         except Exception as ex: print(ex)

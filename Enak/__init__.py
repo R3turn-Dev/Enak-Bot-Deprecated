@@ -1,4 +1,5 @@
 from discord import Client, Game, Embed
+from discord.ext import commands
 from .db import PostgreSQL
 from .settings import SettingManager
 from json import dumps
@@ -11,10 +12,10 @@ DB = PostgreSQL(**conf)
 BotConf = dict(DB.get_configuration())
 
 
-class Bot(Client):
+class Bot(commands.Bot):
     def __init__(self):
         # Initialize Parent class
-        super().__init__()
+        super().__init__(command_prefix="?")
 
         # Get token from setting
         self.token = SettingManager().get().Token
@@ -29,6 +30,19 @@ class Bot(Client):
         self.getTemplateMessage = DB.getTemplateMessage
         self.getAdmins = DB.getAdminInfo
         self.getFooter = DB.getFooter
+
+        self.add_command(self.test)
+
+    @commands.command(name='test')
+    async def test(self, ctx):
+        await ctx.send("HI")
+
+    def getRank(self, server, user_id):
+        _info = self.getAdmins(server=server, user_id=user_id, rank=True)
+        _ranks = [x[1] for x in _info]
+        if not _ranks: _ranks.append(1e5)
+
+        return min(_ranks)
 
     async def on_ready(self, *args, **kwargs):
         print(" < Bot Ready >")
@@ -59,8 +73,12 @@ class Bot(Client):
             await self.send_message(msg.channel, "이 봇은 Direct Message 에서 사용하실 수 없습니다.\nThis bot cannot be used in DM.")
             return
 
+        _RANK = self.getRank(msg.server.id, msg.author.id)
+
         # Command Process
         if "allow_command" in _CHANNEL_TYPE:
+            if _RANK > 1e5: return
+
             # ## Local Command detection
             _SERVER_COMMANDS = self.getCommands(msg.server.id)
             msg_head = msg.content.split(" ")[0]
@@ -78,8 +96,8 @@ class Bot(Client):
 
             # ## Bot Feature Command Detection
             if msg_head == "2권한":
+                print("GO")
                 specific_admin = self.getAdmins(server=msg.server.id, user_id=msg.author.id)
-                print(specific_admin)
 
                 result = ""
                 if specific_admin:
@@ -97,8 +115,11 @@ class Bot(Client):
                             result += "**Admin (etc)**\n" \
                                       "\t*봇의 기능에 대해 일부 권한이 있습니다.*\n\n"
                 else:
-                    result += "**User**\n" \
-                              "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
+                    if _RANK <= 1e5:
+                        result += "**User**\n" \
+                                  "\t*봇의 일반 커멘드 사용권한이 있습니다.*\n\n"
+                    else:
+                        result += "**User**\n"
 
                 embed = Embed(title="권한", description="<@{}>님의 으낙봇 사용 권한입니다.".format(msg.author.id))
                 embed.add_field(name="Permissions", value=result, inline=False)
@@ -107,6 +128,8 @@ class Bot(Client):
                 await self.send_message(msg.channel, embed=embed)
 
             elif msg_head == "2명령어" or msg_head == "2커맨드" or msg_head == "2commands":
+                if _RANK > 1e5: return
+
                 _out = await self.send_message(
                     msg.channel,
                     "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(msg.author.id)+"\n\t".join(_SERVER_COMMANDS.keys())
@@ -146,7 +169,7 @@ class Bot(Client):
     async def on_member_remove(self, member):
         server_id = member.server.id
         try:
-            fb_channel_id = self.getFeedbackChannel(server_id, "welcome")
+            fb_channel_id = self.getFeedbackChannel(server_id, "goodbye")
             if fb_channel_id == "": fb_channel_id = server_id
             fb_channel = self.get_channel(fb_channel_id)
 

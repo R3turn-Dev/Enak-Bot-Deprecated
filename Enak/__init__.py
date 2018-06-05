@@ -33,6 +33,8 @@ class Bot(commands.Bot):
 
         self.add_command(self.get_commands)
         self.add_command(self.get_permission)
+        self.add_command(self.get_all)
+        self.add_command(self.print_if_admin)
 
     def getRank(self, server, user_id):
         _info = self.getAdmins(server=server, user_id=user_id, rank=True)
@@ -40,6 +42,20 @@ class Bot(commands.Bot):
         if not _ranks: _ranks.append(1e5)
 
         return min(_ranks)
+
+    async def is_admin(self, ctx=None, server_id=None, user_id=None):
+        if ctx is None:
+            admins = self.getAdmins(server=server_id, user_id=user_id)
+            roles = [x[0] for x in admins]
+
+            return roles
+        else:
+            if not server_id: server_id = ctx.message.server.id
+            if not user_id: user_id = ctx.message.author.id
+            admins = self.getAdmins(server=server_id, user_id=user_id)
+            roles = [x[0] for x in admins]
+            
+            return bool(roles)
 
     async def on_ready(self, *args, **kwargs):
         print(" < Bot Ready >")
@@ -100,11 +116,11 @@ class Bot(commands.Bot):
     @commands.command(name="권한", pass_context=True)
     async def get_permission(self, ctx):
         _RANK = self.getRank(ctx.message.server.id, ctx.message.author.id)
-        specific_admin = self.getAdmins(server=ctx.message.server.id, user_id=ctx.message.author.id)
+        roles = await self.is_admin(server_id=ctx.message.server.id, user_id=ctx.message.author.id)
 
         result = ""
-        if specific_admin:
-            for role in [x[0] for x in specific_admin]:
+        if roles:
+            for role in roles:
                 if role == "global":
                     result += "**Admin (global)**\n" \
                               "\t*모든 서버에서 봇의 관리자 권한을 얻습니다.\n" \
@@ -128,7 +144,11 @@ class Bot(commands.Bot):
         embed.add_field(name="Permissions", value=result, inline=False)
         embed.set_footer(text=self.getFooter())
 
-        await self.send_message(ctx.message.channel, embed=embed)
+        _out = await self.send_message(ctx.message.channel, embed=embed)
+        await self.add_reaction(ctx.message, self.react_emoji)
+
+        await sleep(20)
+        await self.delete_message(_out)
 
     # 2커맨드
     @commands.command(name='커맨드', pass_context=True)
@@ -136,6 +156,24 @@ class Bot(commands.Bot):
         _SERVER_COMMANDS = self.getCommands(ctx.message.server.id)
 
         _out = await self.send_message(ctx.message.channel, "<@{}> 이 서버에서 사용가능한 커맨드 목록입니다.\n\n\t".format(ctx.message.author.id) + "\n\t".join(_SERVER_COMMANDS.keys()))
+        await self.add_reaction(ctx.message, self.react_emoji)
+
+        await sleep(10)
+        await self.delete_message(_out)
+
+    @commands.command(name="관리자", pass_context=True)
+    @commands.check(is_admin)
+    async def print_if_admin(self, ctx):
+        await self.send_message(ctx.message.channel, repr(data))
+
+    # 2정보
+    @commands.command(name="정보", pass_context=True)
+    async def get_all(self, ctx):
+        channels = list(set(list(self.get_all_channels())))
+        servers = list(set([x.server for x in channels]))
+        members = list(self.get_all_members())
+
+        _out = await self.send_message(ctx.message.channel, """Guilds: {:,}\nChannels: {:,}\nUsers: {:,}\n\n\t{}""".format(len(servers), len(channels), len(members), "\n\t".join([x.name for x in servers])))
         await self.add_reaction(ctx.message, self.react_emoji)
 
         await sleep(10)
